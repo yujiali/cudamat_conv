@@ -13,14 +13,14 @@ nvcc_compile_args = ['-O', '--ptxas-options=-v', '--compiler-options',
 nvcc_compile_args = os.environ.get('NVCCFLAGS', '').split() + nvcc_compile_args
 cuda_libs = ['cublas']
 
-cudamat_ext = Extension('cudamat.libcudamat',
-                        sources=['cudamat/cudamat.cu',
-                                 'cudamat/cudamat_kernels.cu'],
+cudamat_ext = Extension('cudamat_conv.libcudamat',
+                        sources=['cudamat_conv/cudamat.cu',
+                                 'cudamat_conv/cudamat_kernels.cu'],
                         libraries=cuda_libs,
                         extra_compile_args=nvcc_compile_args)
-cudalearn_ext = Extension('cudamat.libcudalearn',
-                          sources=['cudamat/learn.cu',
-                                   'cudamat/learn_kernels.cu'],
+cudalearn_ext = Extension('cudamat_conv.libcudalearn',
+                          sources=['cudamat_conv/learn.cu',
+                                   'cudamat_conv/learn_kernels.cu'],
                           libraries=cuda_libs,
                           extra_compile_args=nvcc_compile_args)
 
@@ -55,13 +55,13 @@ class CUDA_build_ext(build_ext):
                     break
         spawn(cmd, search_path, verbose, dry_run)
 
-setup(name="cudamat",
-      version="0.3",
+setup(name="cudamat_conv",
+      version="0.1",
       description="Performs linear algebra computation on the GPU via CUDA",
       ext_modules=[cudamat_ext, cudalearn_ext],
       packages=find_packages(exclude=['examples', 'test']),
       include_package_data=True,
-      package_data={'cudamat': ['rnd_multipliers_32bit.txt']},
-      author="Volodymyr Mnih",
-      url="https://github.com/cudamat/cudamat",
+      package_data={'cudamat_conv': ['rnd_multipliers_32bit.txt']},
+      author="Volodymyr Mnih, Yujia Li",
+      url="https://github.com/yujiali/cudamat_conv",
       cmdclass={'build_ext': CUDA_build_ext})
