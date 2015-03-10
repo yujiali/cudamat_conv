@@ -10,6 +10,9 @@
 #define ERROR_NOT_ON_DEVICE -8
 #define ERROR_UNSUPPORTED -9
 
+// added by Yujia Li
+#define ERROR_MEMORY_ERROR -10
+
 struct cudamat {
     float* data_host;
     float* data_device;
