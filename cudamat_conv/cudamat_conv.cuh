@@ -7,19 +7,43 @@
 #ifndef _CUDAMAT_CONV_CUH_
 #define _CUDAMAT_CONV_CUH_
 
+#include "cudamat.cuh"
+
 #define CUDAMAT_CONV_SUCCESS    0
+
+#define CUDAMAT_CONV_PADDING_ZERO       0
+#define CUDAMAT_CONV_PADDING_SYMMETRIC  1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * 4D tensors for image data.
+ *
+ * Tensor data are assumed to be layed out according to order n->c->h->w from
+ * the most significant dimension to the least.
  */
 struct cudamat_4d_tensor {
     float *data_host;       // pointer to host data
     float *data_device;     // pointer to device data
     int on_device;          // 1 if a copy of data is on device, 0 otherwise
     int n;                  // number of images
+    int c;                  // number of channels/feature maps
     int h;                  // height of each feature map
     int w;                  // width of each feature map
-    int c;                  // number of channels/feature maps
+};
+
+/**
+ * 2D convolution descriptor, convolution along the h and w dimensions but not 
+ * n and c.
+ */
+struct cudamat_convolution_descriptor {
+    int pad_h;              // height padding, both sides will be padded with this amount
+    int pad_w;              // width padding, both sides will be padded with this amount
+    int pad_type;           // type of padding
+    int stride_h;           // vertical stride
+    int stride_w;           // horizontal stride
 };
 
 // ------------------------ utility functions -------------------------------- //
@@ -76,7 +100,7 @@ int tensor_copy_on_device(cudamat_4d_tensor* t_src, cudamat_4d_tensor* t_dst);
  *
  * on_device bit will be set to 0. data_device and data_host will not be set.
  */
-int tensor_init_empty(cudamat_4d_tensor* t, int n, int h, int w, int c);
+int tensor_init_empty(cudamat_4d_tensor* t, int n, int c, int h, int w);
 
 /**
  * Initialize an empty cudamat_4d_tensor instance t, with the specified sizes
@@ -84,25 +108,33 @@ int tensor_init_empty(cudamat_4d_tensor* t, int n, int h, int w, int c);
  *
  * on_device bit will be set to 0.  data_device will not be set.
  */
-int tensor_init_with_array(cudamat_4d_tensor* t, float* data, int n, int h, int w, int c);
+int tensor_init_with_array(cudamat_4d_tensor* t, float* data, int n, int c, int h, int w);
 
 /**
  * Fill the data_device for the given tensor with pseudo random numbers 
  * uniformly distributed in [0,1].
  */
-int tensor_fill_with_rand(cudamat_4d_tensor* t);
+int tensor_fill_with_rand(rnd_struct* rnd_state, cudamat_4d_tensor* t);
 
 /**
  * Fill the data_device for the given tensor with pseudo random numbers from a
  * standard normal distribution.
  */
-int tensor_fill_with_randn(cudamat_4d_tensor* t);
+int tensor_fill_with_randn(rnd_struct* rnd_state, cudamat_4d_tensor* t);
 
 
 
 // ------------------------ algebraic operations -------------------------------- //
 
-int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output);
+/**
+ * Convolve the input 4D tensor with a filter and write the result to output.
+ */
+int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
+        cudamat_convolution_descriptor* desc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // _CUDAMAT_CONV_CUH_
 

@@ -53,7 +53,7 @@ extern int cuda_set_device(int deviceId) {
         return 0;
 }
 
-extern int init_random(rnd_struct* rnd_state, int seed, char* cudamatpath) {
+extern int init_random(rnd_struct* rnd_state, int seed, const char* cudamatpath) {
     unsigned int * host_mults;
     host_mults = (unsigned int*)malloc(NUM_RND_STREAMS * sizeof(unsigned int));
     FILE * pFile;

@@ -9,8 +9,7 @@
 
 #include "cudamat_conv.cuh"
 #include "cudamat.cuh"
-
-#define CUBLAS_FUNCTION_CALL()
+#include "cudamat_kernels.cuh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,22 +111,22 @@ int tensor_copy_on_device(cudamat_4d_tensor* src, cudamat_4d_tensor* dst) {
 
 // ------------------------ initialization -------------------------------- //
 
-int tensor_init_empty(cudamat_4d_tensor* t, int n, int h, int w, int c) {
+int tensor_init_empty(cudamat_4d_tensor* t, int n, int c, int h, int w) {
     t->n = n;
+    t->c = c;
     t->h = h;
     t->w = w;
-    t->c = c;
 
     t->on_device = 0;
 
     return CUDAMAT_CONV_SUCCESS;
 }
 
-int tensor_init_with_array(cudamat_4d_tensor* t, float* data, int n, int h, int w, int c) {
+int tensor_init_with_array(cudamat_4d_tensor* t, float* data, int n, int c, int h, int w) {
     t->n = n;
+    t->c = c;
     t->h = h;
     t->w = w;
-    t->c = c;
 
     t->on_device = 0;
 
@@ -137,23 +136,56 @@ int tensor_init_with_array(cudamat_4d_tensor* t, float* data, int n, int h, int 
 }
 
 
-int tensor_fill_with_rand(cudamat_4d_tensor* t) {
-    // TODO
+int tensor_fill_with_rand(rnd_struct* rnd_state, cudamat_4d_tensor* t) {
+    int t_size = tensor_size(t);
+    if (t_size <= 0)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    if (!(t->on_device))
+        return ERROR_NOT_ON_DEVICE;
+
+    kRandomUniform<<<NUM_RND_BLOCKS,NUM_RND_THREADS_PER_BLOCK>>>(rnd_state->dev_mults, rnd_state->dev_words, t->data_device, t_size);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
     return CUDAMAT_CONV_SUCCESS;
 }
 
-int tensor_fill_with_randn(cudamat_4d_tensor* t) {
-    // TODO
+int tensor_fill_with_randn(rnd_struct* rnd_state, cudamat_4d_tensor* t) {
+    int t_size = tensor_size(t);
+    if (t_size <= 0)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    if (!(t->on_device))
+        return ERROR_NOT_ON_DEVICE;
+
+    kRandomGaussian<<<NUM_RND_BLOCKS, NUM_RND_THREADS_PER_BLOCK>>>(rnd_state->dev_mults, rnd_state->dev_words, t->data_device, t_size);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
     return CUDAMAT_CONV_SUCCESS;
 }
 
 
 // ------------------------ algebraic operations -------------------------------- //
 
-int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output) {
+int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
+        cudamat_convolution_descriptor* desc) {
     if (!(input->on_device) || !(filter->on_device) || !(output->on_device))
         return ERROR_NOT_ON_DEVICE;
-    if (input->c != filter->c || output->c != filter->n)
+    if (input->c != filter->c || output->c != filter->n || output->n != input->n)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (input->h + desc->pad_h * 2 < filter->h || input->w + desc->pad_w * 2 < filter->w)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
         return ERROR_INCOMPATIBLE_DIMENSIONS;
 
     return CUDAMAT_CONV_SUCCESS;
