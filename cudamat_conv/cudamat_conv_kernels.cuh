@@ -28,7 +28,7 @@
 /**
  * Testing convolution code, no padding, stride=1.
  */
-__global__ void kConvolveTest(float* image, float* filter, float* target,
+__global__ void kConvolveV1(float* image, float* filter, float* target,
         int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w);
 
 __global__ void kConvolve(float* image, float* filter, float* target,

@@ -111,8 +111,8 @@ void test_convolution_speed() {
 
     int n = 128;
     int c = 3;
-    int h = 256;
-    int w = 256;
+    int h = 64;
+    int w = 64;
     int n_ftr = 32;
     int ftr_h = 3;
     int ftr_w = 3;

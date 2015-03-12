@@ -193,7 +193,7 @@ int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat
     const int output_size = tensor_size(output);
     const int n_blocks = MIN((output_size + block_size - 1) / block_size, CONV_MAX_NUM_BLOCKS);
 
-    kConvolveTest<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
+    kConvolveV1<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
         input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
 
     if (SYNC_THREADS)
