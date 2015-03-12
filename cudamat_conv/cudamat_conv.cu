@@ -10,6 +10,7 @@
 #include "cudamat_conv.cuh"
 #include "cudamat.cuh"
 #include "cudamat_kernels.cuh"
+#include "cudamat_conv_kernels.cuh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -187,6 +188,19 @@ int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat
         return ERROR_INCOMPATIBLE_DIMENSIONS;
     if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
         return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    const int block_size = 256;
+    const int output_size = tensor_size(output);
+    const int n_blocks = (output_size + block_size - 1) / block_size;
+
+    kConvolveTest<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
+        input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
 
     return CUDAMAT_CONV_SUCCESS;
 }

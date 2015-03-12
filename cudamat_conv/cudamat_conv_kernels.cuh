@@ -13,7 +13,7 @@
  * Testing convolution code, no padding, stride=1.
  */
 __global__ void kConvolveTest(float* image, float* filter, float* target,
-        int n, int c, int im_h, int im_w, int ftr_h, int ftr_w);
+        int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w);
 
 __global__ void kConvolve(float* image, float* filter, float* target,
         int n, int c, int im_h, int im_w, int ftr_h, int ftr_w, int pad_h, int pad_w, int stride_h, int stride_w);

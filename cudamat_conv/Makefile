@@ -13,8 +13,9 @@ $(OBJDIR):
 $(OUTPUTDIR):
 	mkdir -p $(OUTPUTDIR)
 
-$(OUTPUTDIR)/libcudamatconv.so: cudamat_conv.cu cudamat.cu cudamat_kernels.cu | $(OUTPUTDIR)
-	nvcc -O --ptxas-options=-v --compiler-options '-fPIC' -o $(OUTPUTDIR)/libcudamatconv.so --shared cudamat_conv.cu cudamat.cu cudamat_kernels.cu -lcublas
+$(OUTPUTDIR)/libcudamatconv.so: cudamat_conv.cu cudamat.cu cudamat_kernels.cu cudamat_conv_kernels.cu | $(OUTPUTDIR)
+	nvcc -O --compiler-options '-fPIC' -o $(OUTPUTDIR)/libcudamatconv.so --shared cudamat_conv.cu cudamat_conv_kernels.cu cudamat.cu cudamat_kernels.cu -lcublas
+	#nvcc -O --ptxas-options=-v --compiler-options '-fPIC' -o $(OUTPUTDIR)/libcudamatconv.so --shared cudamat_conv.cu cudamat_conv_kernels.cu cudamat.cu cudamat_kernels.cu -lcublas
 
 $(OBJDIR)/test_helper.o: $(TESTDIR)/test_helper.cpp $(TESTDIR)/test_helper.h | $(OBJDIR)
 	g++ -c $(TESTDIR)/test_helper.cpp -o $(OBJDIR)/test_helper.o

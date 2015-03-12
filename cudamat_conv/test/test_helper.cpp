@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cmath>
 
 #include "../cudamat_conv.cuh"
 #include "test_helper.h"
@@ -79,7 +80,7 @@ void _convolve(float* input, float* filter, float* output,
     const int input_c_size = input_h * input_w;
     const int input_im_size = input_c_size * input_c;
     const int ftr_c_size = ftr_h * ftr_w;
-    const int ftr_im_size = ftr_c_size * ftr_n;
+    const int ftr_im_size = ftr_c_size * input_c;
     const int output_h = input_h - ftr_h + 1;
     const int output_w = input_w - ftr_w + 1;
     const int output_c_size = output_h * output_w;
@@ -103,5 +104,27 @@ void _test_tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, 
     _test_create_tensor(output, input->n, filter->n, input->h - filter->h + 1, input->w - filter->w + 1);
     _convolve(input->data_host, filter->data_host, output->data_host,
             input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
+}
+
+
+void _test_create_convolution_descriptor(
+        cudamat_convolution_descriptor* d, int pad_h, int pad_w, int pad_type, int stride_h, int stride_w) {
+    d->pad_h = pad_h;
+    d->pad_w = pad_w;
+    d->pad_type = pad_type;
+    d->stride_h = stride_h;
+    d->stride_w = stride_w;
+}
+
+float _test_compute_l2_difference(cudamat_4d_tensor* t1, cudamat_4d_tensor* t2) {
+    double diff = 0;
+    int t_size = tensor_size(t1);
+    if (tensor_size(t2) != t_size)
+        return -1;
+
+    for (int i = 0; i < t_size; i++)
+        diff += (t1->data_host[i] - t2->data_host[i]) * (t1->data_host[i] - t2->data_host[i]);
+
+    return sqrt(diff / t_size);
 }
 
