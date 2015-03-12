@@ -13,7 +13,7 @@ $(OBJDIR):
 $(OUTPUTDIR):
 	mkdir -p $(OUTPUTDIR)
 
-$(OUTPUTDIR)/libcudamatconv.so: cudamat_conv.cu cudamat.cu cudamat_kernels.cu cudamat_conv_kernels.cu | $(OUTPUTDIR)
+$(OUTPUTDIR)/libcudamatconv.so: cudamat_conv.cu cudamat_conv.cuh cudamat.cu cudamat.cuh cudamat_kernels.cu cudamat_kernels.cuh cudamat_conv_kernels.cu cudamat_conv_kernels.cuh | $(OUTPUTDIR)
 	nvcc -O --compiler-options '-fPIC' -o $(OUTPUTDIR)/libcudamatconv.so --shared cudamat_conv.cu cudamat_conv_kernels.cu cudamat.cu cudamat_kernels.cu -lcublas
 	#nvcc -O --ptxas-options=-v --compiler-options '-fPIC' -o $(OUTPUTDIR)/libcudamatconv.so --shared cudamat_conv.cu cudamat_conv_kernels.cu cudamat.cu cudamat_kernels.cu -lcublas
 

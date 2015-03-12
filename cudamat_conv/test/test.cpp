@@ -109,11 +109,11 @@ void test_convolution() {
 void test_convolution_speed() {
     cudamat_4d_tensor in, ftr, cpu_out, gpu_out;
 
-    int n = 4;
+    int n = 128;
     int c = 3;
-    int h = 4;
-    int w = 4;
-    int n_ftr = 5;
+    int h = 256;
+    int w = 256;
+    int n_ftr = 32;
     int ftr_h = 3;
     int ftr_w = 3;
 

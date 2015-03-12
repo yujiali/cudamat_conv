@@ -189,9 +189,9 @@ int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat
     if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
         return ERROR_INCOMPATIBLE_DIMENSIONS;
 
-    const int block_size = 256;
+    const int block_size = CONV_BLOCK_SIZE;
     const int output_size = tensor_size(output);
-    const int n_blocks = (output_size + block_size - 1) / block_size;
+    const int n_blocks = MIN((output_size + block_size - 1) / block_size, CONV_MAX_NUM_BLOCKS);
 
     kConvolveTest<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
         input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);

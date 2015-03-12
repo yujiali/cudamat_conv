@@ -7,7 +7,23 @@
 #ifndef _CUDAMAT_CONV_KERNELS_CUH_
 #define _CUDAMAT_CONV_KERNELS_CUH_
 
-#define CONV_BLOCK_SIZE     256
+#define CONV_BLOCK_SIZE         256
+#define CONV_MAX_NUM_BLOCKS     512
+
+#ifndef MIN
+#define MIN(x,y) \
+    ({ __typeof__ (x) _x = (x); \
+       __typeof__ (y) _y = (y); \
+       _x > _y ? _y : _x; })
+#endif
+
+#ifndef MAX
+#define MAX(x,y) \
+    ({ __typeof__ (x) _x = (x); \
+       __typeof__ (y) _y = (y); \
+       _x > _y ? _y : _x; })
+
+#endif
 
 /**
  * Testing convolution code, no padding, stride=1.
