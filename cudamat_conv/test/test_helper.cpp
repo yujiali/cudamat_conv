@@ -73,7 +73,33 @@ void _test_print_small_tensor(cudamat_4d_tensor* t, const char* t_name) {
     printf("\n");
 }
 
+void _convolve(float* input, float* filter, float* output, 
+        int input_n, int input_c, int input_h, int input_w,
+        int ftr_n, int ftr_h, int ftr_w) {
+    const int input_c_size = input_h * input_w;
+    const int input_im_size = input_c_size * input_c;
+    const int ftr_c_size = ftr_h * ftr_w;
+    const int ftr_im_size = ftr_c_size * ftr_n;
+    const int output_c_size = (input_h - ftr_h + 1) * (input_w - ftr_w + 1);
+    const int output_im_size = output_c_size * ftr_n;
+
+    for (int n = 0; n < input_n; n++)
+        for (int f = 0; f < ftr_n; f++)
+            for (int h = 0; h < input_h - ftr_h + 1; h++)
+                for (int w = 0; w < input_w - ftr_w + 1; w++) {
+                    float s = 0;
+                    for (int c = 0; c < input_c; c++)
+                        for (int i = 0; i < ftr_h; i++)
+                            for (int j = 0; j < ftr_w; j++)
+                                s += input[n * input_im_size + c * input_c_size + (h + i) * input_w + j] * \
+                                     filter[f * ftr_im_size + c * ftr_c_size + i * input_w + j];
+                    output[n * output_im_size + f * output_c_size + h * output_w + w];
+                }
+}
+
 void _test_tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output) {
-    // TODO
+    _test_create_tensor(output, input->n, filter->n, input->h - filter->h + 1, input->w - filter->w + 1);
+    _convolve(input->data_host, filter->data_host, output->data_host,
+            input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
 }
 

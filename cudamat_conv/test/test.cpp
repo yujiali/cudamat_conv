@@ -67,13 +67,35 @@ void test_init() {
     _test_free_tensor(&t);
 }
 
+void test_convolution() {
+    cudamat_4d_tensor in, ftr, out;
+
+    _test_create_tensor(&in, 1, 1, 4, 5);
+    _test_create_tensor(&ftr, 1, 1, 3, 3);
+
+    _test_fill_tensor_with_toy_data(&in);
+    _test_fill_tensor_with_toy_data(&ftr);
+
+    _test_print_small_tensor(&in, "in");
+    _test_print_small_tensor(&ftr, "filter");
+
+    _test_tensor_convolve(&in, &ftr, &out);
+
+    _test_print_small_tensor(&out, "out");
+
+    _test_free_tensor(&in);
+    _test_free_tensor(&ftr);
+    _test_free_tensor(&out);
+}
+
 int main() {
     int board_id = obtainGpuLock();
     cublas_init();
 
     // test_helper_io();
     // test_data_transfer();
-    test_init();
+    // test_init();
+    test_convolution();
 
     cublas_shutdown();
     freeGpuLock(board_id);
