@@ -70,10 +70,11 @@ void test_init() {
 void test_convolution() {
     cudamat_4d_tensor in, ftr, out;
 
-    _test_create_tensor(&in, 1, 1, 4, 5);
-    _test_create_tensor(&ftr, 1, 1, 3, 3);
+    _test_create_tensor(&in, 2, 2, 4, 4);
+    _test_create_tensor(&ftr, 2, 2, 3, 3);
 
     _test_fill_tensor_with_toy_data(&in);
+    // _test_fill_tensor_with_constant(&ftr, 1);
     _test_fill_tensor_with_toy_data(&ftr);
 
     _test_print_small_tensor(&in, "in");

@@ -80,20 +80,22 @@ void _convolve(float* input, float* filter, float* output,
     const int input_im_size = input_c_size * input_c;
     const int ftr_c_size = ftr_h * ftr_w;
     const int ftr_im_size = ftr_c_size * ftr_n;
-    const int output_c_size = (input_h - ftr_h + 1) * (input_w - ftr_w + 1);
+    const int output_h = input_h - ftr_h + 1;
+    const int output_w = input_w - ftr_w + 1;
+    const int output_c_size = output_h * output_w;
     const int output_im_size = output_c_size * ftr_n;
 
     for (int n = 0; n < input_n; n++)
         for (int f = 0; f < ftr_n; f++)
-            for (int h = 0; h < input_h - ftr_h + 1; h++)
-                for (int w = 0; w < input_w - ftr_w + 1; w++) {
+            for (int h = 0; h < output_h; h++)
+                for (int w = 0; w < output_w; w++) {
                     float s = 0;
                     for (int c = 0; c < input_c; c++)
                         for (int i = 0; i < ftr_h; i++)
                             for (int j = 0; j < ftr_w; j++)
-                                s += input[n * input_im_size + c * input_c_size + (h + i) * input_w + j] * \
-                                     filter[f * ftr_im_size + c * ftr_c_size + i * input_w + j];
-                    output[n * output_im_size + f * output_c_size + h * output_w + w];
+                                s += input[n * input_im_size + c * input_c_size + (h + i) * input_w + (w + j)] * \
+                                     filter[f * ftr_im_size + c * ftr_c_size + i * ftr_w + j];
+                    output[n * output_im_size + f * output_c_size + h * output_w + w] = s;
                 }
 }
 
