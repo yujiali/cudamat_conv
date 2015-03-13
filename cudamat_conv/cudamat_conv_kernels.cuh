@@ -9,6 +9,7 @@
 
 #define CONV_BLOCK_SIZE         256
 #define CONV_MAX_NUM_BLOCKS     512
+#define CONV_SHARED_MEMORY_SIZE 1024
 
 #ifndef MIN
 #define MIN(x,y) \
@@ -29,6 +30,12 @@
  * Testing convolution code, no padding, stride=1.
  */
 __global__ void kConvolveV1(float* image, float* filter, float* target,
+        int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w);
+
+/**
+ * Slightly faster convolution.
+ */
+__global__ void kConvolveV2(float* image, float* filter, float* target,
         int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w);
 
 __global__ void kConvolve(float* image, float* filter, float* target,

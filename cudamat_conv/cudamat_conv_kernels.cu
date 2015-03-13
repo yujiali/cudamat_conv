@@ -45,7 +45,7 @@ __global__ void kConvolveV1(float* image, float* filter, float* target,
 
 __global__ void kConvolveV2(float* image, float* filter, float* target,
         int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w) {
-    __shared__ float partial[CONV_BLOCK_SIZE];
+    __shared__ float partial[CONV_SHARED_MEMORY_SIZE];
     const int target_h = im_h - ftr_h + 1;
     const int target_w = im_w - ftr_w + 1;
     const int target_c_size = target_h * target_w;
@@ -56,6 +56,9 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
 
     const int ftr_c_size = ftr_h * ftr_w;
     const int ftr_im_size = ftr_c_size * c;
+    const int ftr_full_size = ftr_im_size * n_ftr;
+
+    const shared_batch_size = CONV_SHARED_MEMORY_SIZE / ftr_im_size * ftr_im_size;
 
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -64,6 +67,18 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
         int t_h = (tid % target_c_size) / target_w;
         int t_c = (tid % target_im_size) / target_c_size;
         int t_n = tid / target_im_size;
+
+        int ftr_idx = 0;
+        while (ftr_idx < ftr_full_size) {
+
+            // collectively load one batch of filters
+            __syncthreads();
+            for (int i = threadIdx.x; i < shared_batch_size && i < ftr_full_size - ftr_idx; i += blockDim.x)
+                partial[i] = filter[t_c * ftr_im_size + ftr_idx + i];
+            __syncthreads();
+
+            ftr_idx += shared_batch_size;
+        }
 
         float s = 0;
 
@@ -74,7 +89,7 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
                          filter[t_c * ftr_im_size + k * ftr_c_size + i * ftr_w + j];
                 }
 
-        target[tid] = s;
+        target[tid] += s;
 
         tid += gridDim.x * blockDim.x;
     }
