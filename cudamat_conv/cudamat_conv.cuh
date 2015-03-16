@@ -132,6 +132,9 @@ int tensor_fill_with_randn(rnd_struct* rnd_state, cudamat_4d_tensor* t);
 int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
         cudamat_convolution_descriptor* desc);
 
+int tensor_convolve2(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
+        cudamat_convolution_descriptor* desc);
+
 #ifdef __cplusplus
 }
 #endif

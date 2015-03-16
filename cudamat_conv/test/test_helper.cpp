@@ -11,6 +11,21 @@
 #include "../cudamat_conv.cuh"
 #include "test_helper.h"
 
+#ifndef MIN
+#define MIN(x,y) \
+    ({ __typeof__ (x) _x = (x); \
+       __typeof__ (y) _y = (y); \
+       _x > _y ? _y : _x; })
+#endif
+
+#ifndef MAX
+#define MAX(x,y) \
+    ({ __typeof__ (x) _x = (x); \
+       __typeof__ (y) _y = (y); \
+       _x > _y ? _y : _x; })
+
+#endif
+
 void _test_create_tensor(cudamat_4d_tensor* t, int n, int c, int h, int w) {
     tensor_init_empty(t, n, c, h, w);
     int t_size = tensor_size(t);
@@ -74,6 +89,27 @@ void _test_print_small_tensor(cudamat_4d_tensor* t, const char* t_name) {
     printf("\n");
 }
 
+void _test_print_a_few_elements(cudamat_4d_tensor* t, const char* t_name, int n, bool is_first) {
+    printf("<tensor %s>\n", t_name);
+    const int t_size = tensor_size(t);
+
+    if (!is_first)
+        printf("...");
+    else
+        printf("   ");
+
+    for (int i = 0; i < MIN(n, t_size); i++)
+        if (is_first)
+            printf("  %10g", t->data_host[i]);
+        else
+            printf("  %10g", t->data_host[t_size-i]);
+    
+    if (is_first)
+        printf("   ...");
+
+    printf("\n\n");
+}
+
 void _convolve(float* input, float* filter, float* output, 
         int input_n, int input_c, int input_h, int input_w,
         int ftr_n, int ftr_h, int ftr_w) {
@@ -114,6 +150,17 @@ void _test_create_convolution_descriptor(
     d->pad_type = pad_type;
     d->stride_h = stride_h;
     d->stride_w = stride_w;
+}
+
+void _test_tensor_to_cudamat(cudamat_4d_tensor* t, cudamat* mat) {
+    mat->data_host = t->data_host;
+    mat->data_device = t->data_device;
+    mat->on_device = t->on_device;
+    mat->on_host = 1;
+    mat->size[0] = t->n;
+    mat->size[1] = t->c * t->h * t->w;
+    mat->is_trans = 0; // 0 or 1
+    mat->owns_data = 1;
 }
 
 float _test_compute_l2_difference(cudamat_4d_tensor* t1, cudamat_4d_tensor* t2) {

@@ -19,11 +19,14 @@ void _test_fill_tensor_with_rand_pos_neg(cudamat_4d_tensor* t);
 void _test_fill_tensor_with_toy_data(cudamat_4d_tensor* t);
 
 void _test_print_small_tensor(cudamat_4d_tensor* t, const char* t_name);
+void _test_print_a_few_elements(cudamat_4d_tensor* t, const char* t_name, int n, bool is_first);
 
 void _test_tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output);
 
 void _test_create_convolution_descriptor(
         cudamat_convolution_descriptor* d, int pad_h, int pad_w, int pad_type, int stride_h, int stride_w);
+
+void _test_tensor_to_cudamat(cudamat_4d_tensor* t, cudamat* mat);
 
 float _test_compute_l2_difference(cudamat_4d_tensor* t1, cudamat_4d_tensor* t2);
 

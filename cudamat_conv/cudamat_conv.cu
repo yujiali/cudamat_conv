@@ -62,6 +62,7 @@ int tensor_copy_to_device(cudamat_4d_tensor* t) {
         int err_code = tensor_allocate_memory_on_device(t);
         if (err_code)
             return err_code;
+        t->on_device = 1;
     }
 
     cublasStatus stat = cublasSetVector(t_size, sizeof(float), t->data_host, 1, t->data_device, 1);
@@ -100,6 +101,7 @@ int tensor_copy_on_device(cudamat_4d_tensor* src, cudamat_4d_tensor* dst) {
         int err_code = tensor_allocate_memory_on_device(dst);
         if (err_code)
             return err_code;
+        dst->on_device = 1;
     }
 
     cublasScopy(src_size, src->data_device, 1, dst->data_device, 1);
@@ -198,6 +200,37 @@ int tensor_convolve(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat
         return CUDA_ERROR;
 
     kConvolveV1<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
+        input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return CUDAMAT_CONV_SUCCESS;
+}
+
+int tensor_convolve2(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
+        cudamat_convolution_descriptor* desc) {
+    if (!(input->on_device) || !(filter->on_device) || !(output->on_device))
+        return ERROR_NOT_ON_DEVICE;
+    if (input->c != filter->c || output->c != filter->n || output->n != input->n)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (input->h + desc->pad_h * 2 < filter->h || input->w + desc->pad_w * 2 < filter->w)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    const int block_size = CONV_BLOCK_SIZE;
+    const int output_size = tensor_size(output) / output->c;
+    const int n_blocks = MIN((output_size + block_size - 1) / block_size, CONV_MAX_NUM_BLOCKS);
+
+    cudaError_t err = cudaMemset(output->data_device, 0, tensor_size(output) * sizeof(float));
+    if (err != cudaSuccess || checkCUDAError())
+        return CUDA_ERROR;
+
+    kConvolveV2<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
         input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
 
     if (SYNC_THREADS)
