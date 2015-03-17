@@ -109,11 +109,11 @@ void test_convolution() {
 void test_convolution_speed() {
     cudamat_4d_tensor in, ftr, cpu_out, gpu_out;
 
-    int n = 256;
+    int n = 2;
     int c = 3;
-    int h = 128;
-    int w = 128;
-    int n_ftr = 256;
+    int h = 4;
+    int w = 4;
+    int n_ftr = 5;
     int ftr_h = 3;
     int ftr_w = 3;
 
@@ -129,8 +129,8 @@ void test_convolution_speed() {
     _test_fill_tensor_with_toy_data(&in);
     _test_fill_tensor_with_toy_data(&ftr);
 
-    // _test_print_small_tensor(&in, "in");
-    // _test_print_small_tensor(&ftr, "filter");
+    _test_print_small_tensor(&in, "in");
+    _test_print_small_tensor(&ftr, "filter");
     
     printf("OK[2]\n");
     
@@ -140,7 +140,7 @@ void test_convolution_speed() {
 
     printf("cpu time: %.5f\n", (float)(t_end - t_start) / CLOCKS_PER_SEC);
 
-    // _test_print_small_tensor(&cpu_out, "cpu_out");
+    _test_print_small_tensor(&cpu_out, "cpu_out");
 
     t_start = clock();
     _test_create_tensor(&gpu_out, n, n_ftr, h - ftr_h + 1, w - ftr_w + 1);
@@ -157,13 +157,14 @@ void test_convolution_speed() {
     printf("OK[4]\n");
 
     _test_create_convolution_descriptor(&d, 0, 0, 0, 1, 1);
-    tensor_convolve2(&in, &ftr, &gpu_out, &d);
+    // tensor_convolve2(&in, &ftr, &gpu_out, &d);
+    tensor_convolve3(&in, &ftr, &gpu_out, &d);
     // tensor_convolve(&in, &ftr, &gpu_out, &d);
 
     printf("OK[5]\n");
 
     tensor_copy_to_host(&gpu_out);
-    // _test_print_small_tensor(&gpu_out, "gpu_out");
+    _test_print_small_tensor(&gpu_out, "gpu_out");
     t_end = clock();
     
     printf("gpu time: %.5f\n", (float)(t_end - t_start) / CLOCKS_PER_SEC);
@@ -184,11 +185,11 @@ void test_convolution_speed() {
 void test_compare_gpu_convolution_speed() {
     cudamat_4d_tensor in, ftr, conv1_out, conv2_out;
 
-    int n = 256;
+    int n = 64;
     int c = 3;
     int h = 128;
     int w = 128;
-    int n_ftr = 256;
+    int n_ftr = 64;
     int ftr_h = 3;
     int ftr_w = 3;
 
@@ -221,12 +222,12 @@ void test_compare_gpu_convolution_speed() {
     printf("OK[4]\n");
 
 
-    printf("in->on_device: %d\n", in.on_device);
-    printf("ftr->on_device: %d\n", ftr.on_device);
-    printf("conv1_out->on_device: %d\n", conv1_out.on_device);
+    // printf("in->on_device: %d\n", in.on_device);
+    // printf("ftr->on_device: %d\n", ftr.on_device);
+    // printf("conv1_out->on_device: %d\n", conv1_out.on_device);
 
-    // printf("Error code: %d\n", tensor_convolve(&in, &ftr, &conv1_out, &d));
-    printf("Error code: %d\n", tensor_convolve2(&in, &ftr, &conv1_out, &d));
+    printf("Error code: %d\n", tensor_convolve(&in, &ftr, &conv1_out, &d));
+    // printf("Error code: %d\n", tensor_convolve2(&in, &ftr, &conv1_out, &d));
 
     printf("OK[5]\n");
 
@@ -234,6 +235,7 @@ void test_compare_gpu_convolution_speed() {
     clock_t t_end = clock();
     
     printf("conv1 time: %.5f\n", (float)(t_end - t_start) / CLOCKS_PER_SEC);
+    // _test_free_tensor_gpu_memory(&conv1_out);
 
     t_start = clock();
     _test_create_tensor(&conv2_out, n, n_ftr, h - ftr_h + 1, w - ftr_w + 1);
@@ -241,11 +243,12 @@ void test_compare_gpu_convolution_speed() {
 
     printf("OK[6]\n");
 
-    printf("in->on_device: %d\n", in.on_device);
-    printf("ftr->on_device: %d\n", ftr.on_device);
-    printf("conv2_out->on_device: %d\n", conv2_out.on_device);
+    // printf("in->on_device: %d\n", in.on_device);
+    // printf("ftr->on_device: %d\n", ftr.on_device);
+    // printf("conv2_out->on_device: %d\n", conv2_out.on_device);
 
-    printf("Error code: %d\n", tensor_convolve2(&in, &ftr, &conv2_out, &d));
+    // printf("Error code: %d\n", tensor_convolve2(&in, &ftr, &conv2_out, &d));
+    printf("Error code: %d\n", tensor_convolve3(&in, &ftr, &conv2_out, &d));
     // printf("Error code: %d\n", tensor_convolve(&in, &ftr, &conv2_out, &d));
 
     printf("OK[7]\n");

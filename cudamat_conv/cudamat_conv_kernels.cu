@@ -76,7 +76,7 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
 
         tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-        while (tid / target_c_size < n) {
+        while (tid < target_c_size * n) {
             t_w = tid % target_w;
             t_h = (tid % target_c_size) / target_w;
             t_n = tid / target_c_size;
@@ -84,7 +84,6 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
             t_base_idx = t_n * target_im_size + t_h * target_w + t_w;
             i_base_idx = t_n * image_im_size + t_h * im_w + t_w;
 
-            // changed this - should save some memory access, need testing
             int last_f_n = -1;
             float s = 0;
 
@@ -101,6 +100,8 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
 
                 s += partial[i] * image[i_base_idx + f_c * image_c_size + f_h * im_w + f_w];
             }
+            if (s != 0)
+                target[t_base_idx + last_f_n * target_c_size] += s;
 
             tid += gridDim.x * blockDim.x;
         }
@@ -112,8 +113,10 @@ __global__ void kConvolveV2(float* image, float* filter, float* target,
 __global__ void kConvolveV3(float* image, float* filter, float* target,
         int n, int c, int im_h, int im_w, int n_ftr, int ftr_h, int ftr_w) {
 
-    __shared__ float filter_cache[CONV_HALF_SHARED_MEMORY_SIZE];
-    __shared__ float image_cache[CONV_HALF_SHARED_MEMORY_SIZE];
+    __shared__ float target_cache[CONV_TILE_SIZE][CONV_TILE_SIZE];
+    __shared__ float filter_cache[CONV_MAX_FILTER_SIZE][CONV_MAX_FILTER_SIZE];
+    __shared__ float image_cache[CONV_TILE_SIZE + CONV_MAX_FILTER_SIZE - 1][CONV_TILE_SIZE + CONV_MAX_FILTER_SIZE - 1];
+
     const int target_h = im_h - ftr_h + 1;
     const int target_w = im_w - ftr_w + 1;
     const int target_c_size = target_h * target_w;
@@ -121,85 +124,65 @@ __global__ void kConvolveV3(float* image, float* filter, float* target,
 
     const int image_c_size = im_h * im_w;
     const int image_im_size = image_c_size * c;
-    const int image_full_size = image_im_size * n;
 
     const int ftr_c_size = ftr_h * ftr_w;
     const int ftr_im_size = ftr_c_size * c;
-    const int ftr_c_full_size = ftr_c_size * n_ftr;
 
-    const int cache_size = CONV_HALF_SHARED_MEMORY_SIZE;
+    const int n_blocks_w = (target_w + blockDim.x - 1) / blockDim.x;
+    const int n_blocks_h = (target_h + blockDim.y - 1) / blockDim.y;
+    const int n_blocks_c = n_blocks_h * n_blocks_w;
+    const int n_blocks_im = n_blocks_c * n_ftr;
 
-    const int i_cache_w = blockDim.x - ftr_w + 1;
-    const int i_cache_h = ftr_h;
-    const int i_cache_size = i_cache_w * i_cache_h;
+    int bid = blockIdx.x;
 
-    int tid_base = blockIdx.x * blockDim.x;
+    // loop over all output blocks
+    while (bid < n * n_blocks_im) {
+        int b_n = bid / n_blocks_im;
+        int b_c = (bid % n_blocks_im) / n_blocks_c;
+        int b_h = (bid % n_blocks_c) / n_blocks_w;
+        int b_w = bid % n_blocks_w;
 
-    // TODO
-    while (tid_base < target_im_size * n) {
-        // load input
-        int t_w = tid_base % target_w;
-        int t_h = (tid_base % target_c_size) / target_w;
-        int t_c = (tid_base % target_im_size) / target_c_size;
-        int t_n = tid_base / target_im_size;
+        int i_base_h = b_h * blockDim.y;
+        int i_base_w = b_w * blockDim.x;
 
-        int i_base = t_n * image_im_size + t_c * image_c_size + t_h * im_w + t_w;
+        // reset all targests
+        // __syncthreads();
+        target_cache[threadIdx.y][threadIdx.x] = 0;
 
-        __syncthreads();
-        for (int i = threadIdx.x; i < i_cache_size; i += blockDim.x)
-            image_cache[i] = image[i_base + (i / i_cache_w) * im_w + (i % i_cache_w)];
+        // loop over input channels
+        for (int k = 0; k < c; k++) {
+            int i_base = b_n * image_im_size + k * image_c_size;
+            int f_base = b_c * ftr_im_size + k * ftr_c_size;
 
-        // load filter
+            // load data cache first
 
-        tid_base += gridDim.x * blockDim.x;
-    }
+            for (int h = threadIdx.y; h < blockDim.y + ftr_h - 1 && h < im_h; h += blockDim.y)
+                for (int w = threadIdx.x; w < blockDim.x + ftr_w - 1 && w < im_w; w += blockDim.x)
+                    image_cache[h][w] = image[i_base + (i_base_h + h) * im_w + (i_base_w + w)];
+            // __syncthreads();
 
+            for (int h = threadIdx.y; h < ftr_h; h += blockDim.y)
+                for (int w = threadIdx.x; w < ftr_w; w += blockDim.x)
+                    filter_cache[h][w] = filter[f_base + h * ftr_w + w];
+            __syncthreads();
 
-
-    while (tid < image_im_size * n) {
-        // load input
-        __syncthreads();
-        const int im_batch_size = MIN(cache_size, image_full_size - tid);
-        for (int i = threadIdx.x; i < im_batch_size; i += blockDim.x)
-            image_cache[i] = image[tid + i];
-        __syncthreads();
-
-        int i_w = tid
-
-        int c_start = (tid % image_im_size) / image_c_size;
-        int c_end = ((tid + batch_size - 1) % image_im_size) / image_c_size;
-        if (c_end < c_start)
-            c_end += c;
-
-        for (int f_c = c_start; f_c <= c_end; f_c++) {
-            int k = f_c % c;
-            int fid = ftr_c_size * k;
-
-            while (fid < ftr_im_size * n_ftr) {
-                // load filter data
-                __syncthreads();
-                const int ftr_batch_size = MIN(cache_size, ftr_c_full_size - fid);
-                for (int i = threadIdx.x; i < ftr_batch_size; i += blockDim.x) {
-                    int hw_id = (fid + i) % ftr_c_size;
-                    int n_id = (fid + i) / ftr_c_size;
-                    filter_cache[i] = filter[n_id * ftr_im_size + k * ftr_c_size + hw_id];
-                }
-                __syncthreads();
-
-                // compute outputs using image_cache and filter_cache
-                for (int i = 0; i < ftr_batch_size; i++) {
-                    int f_w = (fid + i) % ftr_w;
-                    int f_h = ((fid + i) % ftr_c_size) / ftr_w;
-                    int f_n = (fid + i) / ftr_c_size;
-
-                    target;
-                }
+            if (i_base_h + threadIdx.y < target_h && i_base_w + threadIdx.x < target_w) {
+                float s = 0;
+                for (int h = 0; h < ftr_h; h++)
+                    for (int w = 0; w < ftr_w; w++)
+                        s += image_cache[threadIdx.y + h][threadIdx.x + w] * filter_cache[h][w];
+                target_cache[threadIdx.y][threadIdx.x] += s;
             }
+            __syncthreads();
         }
 
-        tid += gridDim.x * blockDim.x;
-    }
+        // write to output
+        if (i_base_h + threadIdx.y < target_h && i_base_w + threadIdx.x < target_w)
+            target[b_n * target_im_size + b_c * target_c_size + (i_base_h + threadIdx.y) * target_w + (i_base_w + threadIdx.x)] \
+                = target_cache[threadIdx.y][threadIdx.x];
 
+        bid += blockDim.x;
+    }
 }
 
 __global__ void kConvolve(float* image, float* filter, float* target,

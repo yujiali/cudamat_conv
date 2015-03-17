@@ -41,6 +41,12 @@ void _test_free_tensor(cudamat_4d_tensor* t) {
     tensor_init_empty(t, 0, 0, 0, 0);
 }
 
+
+void _test_free_tensor_gpu_memory(cudamat_4d_tensor* t) {
+    tensor_free_memory_on_device(t);
+    t->on_device = 0;
+}
+
 void _test_fill_tensor_with_constant(cudamat_4d_tensor* t, float value) {
     int t_size = tensor_size(t);
 
@@ -102,7 +108,7 @@ void _test_print_a_few_elements(cudamat_4d_tensor* t, const char* t_name, int n,
         if (is_first)
             printf("  %10g", t->data_host[i]);
         else
-            printf("  %10g", t->data_host[t_size-i]);
+            printf("  %10g", t->data_host[t_size-(MIN(n, t_size)-i)]);
     
     if (is_first)
         printf("   ...");

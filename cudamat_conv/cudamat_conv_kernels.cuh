@@ -12,8 +12,8 @@
 #define CONV_SHARED_MEMORY_SIZE         2048
 #define CONV_HALF_SHARED_MEMORY_SIZE    1024
 
-#define CONV_SMALL_BLOCK_SIZE           32
-#define CONV_SMALL_NUM_BLOCKS           4096
+#define CONV_TILE_SIZE                  16
+#define CONV_MAX_FILTER_SIZE            9
 
 #ifndef MIN
 #define MIN(x,y) \

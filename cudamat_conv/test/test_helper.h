@@ -12,6 +12,7 @@
 
 void _test_create_tensor(cudamat_4d_tensor* t, int n, int c, int h, int w);
 void _test_free_tensor(cudamat_4d_tensor* t);
+void _test_free_tensor_gpu_memory(cudamat_4d_tensor* t);
 
 void _test_fill_tensor_with_constant(cudamat_4d_tensor* t, float value);
 void _test_fill_tensor_with_rand_positive(cudamat_4d_tensor* t);
@@ -31,3 +32,4 @@ void _test_tensor_to_cudamat(cudamat_4d_tensor* t, cudamat* mat);
 float _test_compute_l2_difference(cudamat_4d_tensor* t1, cudamat_4d_tensor* t2);
 
 #endif // _TEST_HELPER_H_
+

@@ -254,15 +254,15 @@ int tensor_convolve3(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudama
     if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
         return ERROR_INCOMPATIBLE_DIMENSIONS;
 
-    const int block_size = CONV_SMALL_BLOCK_SIZE;
-    const int output_size = tensor_size(output);
-    const int n_blocks = MIN((output_size + block_size - 1) / block_size, CONV_SMALL_NUM_BLOCKS);
+    dim3 block_dim(CONV_TILE_SIZE, CONV_TILE_SIZE);
+    const int n_blocks = MIN(output->n * output->c * ((output->h + CONV_TILE_SIZE - 1) / CONV_TILE_SIZE) * \
+                         ((output->w + CONV_TILE_SIZE -1) / CONV_TILE_SIZE), CONV_MAX_NUM_BLOCKS);
 
     cudaError_t err = cudaMemset(output->data_device, 0, tensor_size(output) * sizeof(float));
     if (err != cudaSuccess || checkCUDAError())
         return CUDA_ERROR;
 
-    kConvolveV3<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
+    kConvolveV3<<<n_blocks, block_dim>>>(input->data_device, filter->data_device, output->data_device,
         input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
 
     if (SYNC_THREADS)
