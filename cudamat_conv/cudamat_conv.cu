@@ -242,6 +242,38 @@ int tensor_convolve2(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudama
     return CUDAMAT_CONV_SUCCESS;
 }
 
+
+int tensor_convolve3(cudamat_4d_tensor* input, cudamat_4d_tensor* filter, cudamat_4d_tensor* output,
+        cudamat_convolution_descriptor* desc) {
+    if (!(input->on_device) || !(filter->on_device) || !(output->on_device))
+        return ERROR_NOT_ON_DEVICE;
+    if (input->c != filter->c || output->c != filter->n || output->n != input->n)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (input->h + desc->pad_h * 2 < filter->h || input->w + desc->pad_w * 2 < filter->w)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (output->h != input->h + desc->pad_h * 2 - filter->h + 1 || output->w != input->w + desc->pad_w * 2 - filter->w + 1)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    const int block_size = CONV_SMALL_BLOCK_SIZE;
+    const int output_size = tensor_size(output);
+    const int n_blocks = MIN((output_size + block_size - 1) / block_size, CONV_SMALL_NUM_BLOCKS);
+
+    cudaError_t err = cudaMemset(output->data_device, 0, tensor_size(output) * sizeof(float));
+    if (err != cudaSuccess || checkCUDAError())
+        return CUDA_ERROR;
+
+    kConvolveV3<<<n_blocks, block_size>>>(input->data_device, filter->data_device, output->data_device,
+        input->n, input->c, input->h, input->w, filter->n, filter->h, filter->w);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return CUDAMAT_CONV_SUCCESS;
+}
+
 #ifdef __cplusplus
 }
 #endif
